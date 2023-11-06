@@ -1,0 +1,10 @@
+[global]
+disableWatchdogWarning = false
+disableWidgetStateDuplicationWarning = false
+showWarningOnDirectExecution = false
+dataFrameSerialization = "arrow"
+[theme]
+primaryColor="#ffb64b"
+backgroundColor="#fbf5ef"
+secondaryBackgroundColor="#229256"
+textColor="#060606"

@@ -1,11 +1,10 @@
-def extract_common_elements(array1, array2, array3, array4):
+def extract_common_elements(array1, array2, array3):
     set1 = set(array1)
     set2 = set(array2)
     set3 = set(array3)
-    set4 = set(array4)
 
     # Find common elements using set intersection
-    common_elements = list(set1.intersection(set2, set3, set4))
+    common_elements = list(set1.intersection(set2, set3))
     
     return common_elements
 
@@ -14,4 +13,5 @@ def create_csv_and_display(data_dict):
     import streamlit as st
 
     df = pd.DataFrame(data_dict)
-    st.write(df)
+    st.dataframe(df)
+    return df

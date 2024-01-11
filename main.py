@@ -4,6 +4,7 @@ import pymongo as py
 from demographic_queries import demographic_queries_list
 from medical_data_queries import med_data_queries_list
 from medical_history_queries import med_hist_queries_list
+from age_querying import query_age
 
 from common_uuids import extract_common_elements,create_csv_and_display
 from verification import previous_decision
@@ -26,10 +27,9 @@ st.set_page_config(page_title="Search engine", page_icon=":bar_chart:", layout="
 #-----------------------------------------------------------------------------
 
 values_strings_demographics=["Name","Surname","DNI","Gender","Country of birth","Province of birth","Town of birth","Street name","Postal Code","Country","Province","Town"]
-values_dates_demographics=["Birth date",]
-values_floats_demographics=["Street N°",]
+#values_dates_demographics=["Birth date",]
 
-all_demog_values_list= values_strings_demographics+values_dates_demographics+values_floats_demographics
+all_demog_values_list= values_strings_demographics #+ values_dates_demographics
 
 chosen_parameters_demog=st.multiselect(
     'Choose demographic conditions combo:',
@@ -45,7 +45,7 @@ chosen_parameters_med_data=st.multiselect(
 )
 
 st.write("#")
-analytics_med_hist=["HbA1c", "UACR", "eGFR", "Height", "Weight", "BMI", "Creatinine_Phosphokinase", "Ejection_fraction", "Platelets", "Serum_Creatinine", "Serum_Sodium"]
+analytics_med_hist=["HbA1c", "UACR", "eGFR", "BMI", "Creatinine_Phosphokinase", "Ejection_fraction", "Platelets", "Serum_Creatinine", "Serum_Sodium"]
 
 chosen_parameters_med_hist=st.multiselect(
     'Choose medical history conditions combo:',
@@ -57,11 +57,15 @@ chosen_parameters = chosen_parameters_demog + chosen_parameters_med_data + chose
 #query_demog_list is a list of all demographic queries
 query_demog_list= demographic_queries_list(chosen_parameters_demog)
 
+if "Age" in chosen_parameters_med_data:
+    age_uuids=query_age()
+
 #query_med_data_list is a list of all medical data queries
 query_med_data_list= med_data_queries_list(chosen_parameters_med_data)
 
 #query_med_hist_list is a list of all medical history queries
-query_med_hist_list= med_hist_queries_list(chosen_parameters_med_hist)
+#query_med_hist_list
+query_med_hist_result= med_hist_queries_list(chosen_parameters_med_hist)
 
 if len(chosen_parameters):
     st.write("#")
@@ -96,21 +100,27 @@ if len(chosen_parameters):
         query_med_data_result=[]
         for doc in cursor_med_data:
             query_med_data_result.append(doc["uuid"])
+
+        if "Age" in chosen_parameters_med_data:
+            query_med_data_result=list(set(query_med_data_result) & set(age_uuids))
     
 
-        #Querying the medical history data based on conditions:
-        query_med_hist={}
-        if len(query_med_hist_list):
-            query_med_hist={"$and": query_med_hist_list}
-
-        cursor_med_hist = medical_hist_coll.find(query_med_hist)
-
-        query_med_hist_result=[]
-        for doc in cursor_med_hist:
-            query_med_hist_result.append(doc["uuid"])
+#        #Querying the medical history data based on conditions:
+#        query_med_hist={}
+#        if len(query_med_hist_list):
+#            query_med_hist={"$and": query_med_hist_list}
+#
+#        cursor_med_hist = medical_hist_coll.find(query_med_hist)
+#
+#        query_med_hist_result=[]
+#        for doc in cursor_med_hist:
+#            query_med_hist_result.append(doc["uuid"])
 
         #Matching "uuid":
+        #this function extracts the list of common "uuid"s.
         common_uuid=extract_common_elements(query_demog_result,query_med_data_result,query_med_hist_result)
+
+        #consent_uuids is the list of "uuid" of all patients that accepted to share their medical data (Anonymized)
 
         #extracting uuids of patients with consents:
         #consent_uuids=[]
@@ -124,10 +134,10 @@ if len(chosen_parameters):
         st.write("#")
 
         if consent_uuids:
-
             csv_dict=dict_generation(consent_uuids)
             df=create_csv_and_display(csv_dict)
             plotting(df)
+            
         else:
             st.error("No result found for this query")
 

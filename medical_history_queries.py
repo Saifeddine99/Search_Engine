@@ -1,15 +1,26 @@
 import streamlit as st
+import pymongo as py
+
 from paths import parameter_to_directory
 
-analytics_med_hist=["HbA1c", "UACR", "eGFR", "Height", "Weight", "BMI", "Creatinine_Phosphokinase", "Ejection_fraction", "Platelets", "Serum_Creatinine", "Serum_Sodium"]
+from encrypt import encrypt_data
+from decrypt import decrypt_data
+
+#-----------------------------------------------------------------------------
+myclient=py.MongoClient("mongodb://localhost:27017")
+#Relating data to "clinical_data"
+medical_hist_coll=myclient["Clinical_database"]["Medical history"]
+
+analytics_med_hist=["HbA1c", "UACR", "eGFR", "BMI", "Creatinine_Phosphokinase", "Ejection_fraction", "Platelets", "Serum_Creatinine", "Serum_Sodium"]
 
 def med_hist_queries_list(chosen_parameters_med_hist):
     #query_med_hist_list is a list of all medical history queries
-    query_med_hist_list=[]
+    uuids_list=[]
     if len(chosen_parameters_med_hist)>0:
+        uuidzz_all_iterations=[]
         for value in chosen_parameters_med_hist:
+            uuidzz_one_iteration=[]
             st.header(value.upper()+":")
-            query_med_hist={}
 
             col01,col02,col03 = st.columns([1.25,.25,2])
             with col01:
@@ -18,6 +29,7 @@ def med_hist_queries_list(chosen_parameters_med_hist):
                     ("equal","not equal","greater","lower","greater or equal","lower or equal", "between")
                 )
             with col03:
+
                 if selected=="between":
                     lower_value = st.number_input(
                         "Lower value of "+value+":"
@@ -27,81 +39,166 @@ def med_hist_queries_list(chosen_parameters_med_hist):
                         "Higher value of "+value+":",
                         min_value=lower_value
                         )
+
+
                 else:
                     input_value = st.number_input(
                         "Value of "+value+":"
                         )
+                    
             
-            if value in ["Height", "Weight", "BMI"]:
-                if selected=="equal":
-                    query_med_hist={parameter_to_directory(value): input_value}
-                elif selected== "not equal":
-                    query_med_hist={parameter_to_directory(value): {"$ne": input_value}}
-                elif selected== "greater":
-                    query_med_hist={parameter_to_directory(value): {"$gt": input_value}}
-                elif selected== "greater or equal":
-                    query_med_hist={parameter_to_directory(value): {"$gte": input_value}}
-                elif selected== "lower":
-                    query_med_hist={parameter_to_directory(value): {"$lt": input_value}}
-                elif selected== "lower or equal":
-                    query_med_hist={parameter_to_directory(value): {"$lte": input_value}}
-                elif selected=="between":
-                    query_med_hist={"$and":[{parameter_to_directory(value): {"$gte": lower_value}},
-                                {parameter_to_directory(value): {"$lte": higher_value}}
-                                ]
-                        }
+            if value == "BMI":
 
+                if selected=="equal":
+
+                    input_value= str(input_value)
+                    query_med_hist={parameter_to_directory(value): encrypt_data(input_value)}
+                    query= medical_hist_coll.find(query_med_hist)
+                    for doc in query:
+                        uuidzz_one_iteration.append(doc["uuid"])
+
+                elif selected== "not equal":
+
+                    input_value= str(input_value)
+                    query_med_hist={parameter_to_directory(value): {"$ne": encrypt_data(input_value)}}
+                    query= medical_hist_coll.find(query_med_hist)
+                    for doc in query:
+                        uuidzz_one_iteration.append(doc["uuid"])
+
+                else:
+                     
+                    query = medical_hist_coll.find()
+                    value_list=[]
+                    all_uuids=[]
+
+                    for doc in query:
+                        try:
+                            value_path=doc["analytics"][1]["content"][2]["data"]["events"][0]["data"]["items"][0]["value"]["magnitude"]
+                            decrypted_value= float(decrypt_data(value_path))
+                            value_list.append(decrypted_value)
+                            all_uuids.append(doc["uuid"])
+                        except:
+                            pass
+
+                    if selected=="between":
+                        for index,actual_value in enumerate(value_list):
+                            
+                            if (lower_value <= actual_value) & ( actual_value <= higher_value) :
+                                uuidzz_one_iteration.append(all_uuids[index])
+                    
+                    elif selected == "greater":
+                        for index,actual_value in enumerate(value_list):
+                            
+                            if actual_value > input_value :
+                                uuidzz_one_iteration.append(all_uuids[index])
+
+                    elif selected == "greater or equal":
+                        for index,actual_value in enumerate(value_list):
+                            
+                            if actual_value >= input_value :
+                                uuidzz_one_iteration.append(all_uuids[index])
+                    
+                    elif selected == "lower":
+                        for index,actual_value in enumerate(value_list):
+                            
+                            if actual_value < input_value :
+                                uuidzz_one_iteration.append(all_uuids[index])
+
+                    elif selected == "lower or equal":
+                        for index,actual_value in enumerate(value_list):
+                            
+                            if actual_value <= input_value :
+                                uuidzz_one_iteration.append(all_uuids[index])
+
+
+            #------------------------------------------------------------------------------------------
             else:
                 
-                if selected== "equal":
-                    query_med_hist={"analytics.0": {"$elemMatch":{
-                        parameter_to_directory("laboratory test name"): {'$regex':  f'^{value}$', '$options': 'i'},
-                        parameter_to_directory("laboratory test result"): input_value}
-                    }}
+                if selected == "equal":
 
-                elif selected== "not equal":
+                    input_value= str(input_value)
+                    query_med_hist={"analytics.0": {"$elemMatch":{
+                        parameter_to_directory("laboratory test name"): encrypt_data(value.upper()),
+                        parameter_to_directory("laboratory test result"): encrypt_data(input_value)}
+                    }}
+                    query= medical_hist_coll.find(query_med_hist)
+                    for doc in query:
+                        uuidzz_one_iteration.append(doc["uuid"])
+
+                elif selected == "not equal":
+                    input_value= str(input_value)
                     query_med_hist={"$or":[{"analytics.0":
                     {"$elemMatch":
-                       {parameter_to_directory("laboratory test name"): {'$regex':  f'^{value}$', '$options': 'i'},
-                        parameter_to_directory("laboratory test result"): {"$ne": input_value}}
+                       {parameter_to_directory("laboratory test name"): encrypt_data(value.upper()),
+                        parameter_to_directory("laboratory test result"): {"$ne": encrypt_data(input_value)}}
                     }},
-                    {"analytics.0"+"."+parameter_to_directory("laboratory test name"):{"$not":{'$regex':  f'^{value}$', '$options': 'i'}}}
+                    {"analytics.0"+"."+parameter_to_directory("laboratory test name"):{"$ne": encrypt_data(value.upper())}}
                     ]}
-
-                elif selected== "greater":
-                    query_med_hist={"analytics.0": {"$elemMatch":{
-                        parameter_to_directory("laboratory test name"): {'$regex':  f'^{value}$', '$options': 'i'},
-                        parameter_to_directory("laboratory test result"): {"$gt": input_value}}
-                    }}
-
-                elif selected== "greater or equal":
-                    query_med_hist={"analytics.0": {"$elemMatch":{
-                        parameter_to_directory("laboratory test name"): {'$regex':  f'^{value}$', '$options': 'i'},
-                        parameter_to_directory("laboratory test result"): {"$gte": input_value}}
-                    }}
-
-                elif selected== "lower":
-                    query_med_hist={"analytics.0": {"$elemMatch":{
-                        parameter_to_directory("laboratory test name"): {'$regex':  f'^{value}$', '$options': 'i'},
-                        parameter_to_directory("laboratory test result"): {"$lt": input_value}}
-                    }}
-
-                elif selected== "lower or equal":
-                    query_med_hist={"analytics.0": {"$elemMatch":{
-                        parameter_to_directory("laboratory test name"): {'$regex':  f'^{value}$', '$options': 'i'},
-                        parameter_to_directory("laboratory test result"): {"$lte": input_value}}
-                    }}
-
-                elif selected=="between":
-                    query_med_hist={"analytics.0": {"$elemMatch":{
-                        parameter_to_directory("laboratory test name"): {'$regex':  f'^{value}$', '$options': 'i'},
-                        "$and":[{parameter_to_directory("laboratory test result"): {"$gte": lower_value}},
-                                {parameter_to_directory("laboratory test result"): {"$lte": higher_value}}
-                                ]
-                        
-                    }}}
+                    query= medical_hist_coll.find(query_med_hist)
+                    for doc in query:
+                        uuidzz_one_iteration.append(doc["uuid"])
                 
-            #Here we gonna add the specific query related to this chosen condition to the list of queries           
-            query_med_hist_list.append(query_med_hist)
+                else:
+                    
+                    query_med_hist={"analytics.0": {"$elemMatch":{
+                        parameter_to_directory("laboratory test name"): encrypt_data(value.upper())}
+                    }}
 
-    return(query_med_hist_list)
+                    query = medical_hist_coll.find(query_med_hist)
+
+                    value_list=[]
+                    all_uuids=[]
+                    for doc in query:
+                            for index, iter1 in enumerate(doc["analytics"][0]):
+                                if iter1["content"][0]["data"]["events"][0]["data"]["items"][0]["value"]["value"]== encrypt_data(value.upper()):
+                                    encrypted_value = iter1["content"][0]["data"]["events"][0]["data"]["items"][6]["items"][2]["value"]["magnitude"]
+                                    decrypted_value= float(decrypt_data(encrypted_value))
+                                    break
+
+                            value_list.append(decrypted_value)
+                            all_uuids.append(doc["uuid"])
+
+                    if selected=="between":
+                        for index,actual_value in enumerate(value_list):
+                            
+                            if (lower_value <= actual_value) & ( actual_value <= higher_value) :
+                                uuidzz_one_iteration.append(all_uuids[index])
+                    
+                    elif selected == "greater":
+                        for index,actual_value in enumerate(value_list):
+                            
+                            if actual_value > input_value :
+                                uuidzz_one_iteration.append(all_uuids[index])
+
+                    elif selected == "greater or equal":
+                        for index,actual_value in enumerate(value_list):
+                            
+                            if actual_value >= input_value :
+                                uuidzz_one_iteration.append(all_uuids[index])
+                    
+                    elif selected == "lower":
+                        for index,actual_value in enumerate(value_list):
+                            
+                            if actual_value < input_value :
+                                uuidzz_one_iteration.append(all_uuids[index])
+
+                    elif selected == "lower or equal":
+                        for index,actual_value in enumerate(value_list):
+                            
+                            if actual_value <= input_value :
+                                uuidzz_one_iteration.append(all_uuids[index])
+                
+
+            uuidzz_all_iterations.append(uuidzz_one_iteration)
+        
+        # Using set intersection to find common uuids
+        common_uuidzz = set(uuidzz_all_iterations[0]).intersection(*uuidzz_all_iterations[1:])
+        uuids_list=list(common_uuidzz)
+
+            #Here we gonna add the specific query related to this chosen condition to the list of queries
+    else:
+        query=medical_hist_coll.find()
+        for doc in query:
+            uuids_list.append(doc["uuid"])
+
+    return(uuids_list)

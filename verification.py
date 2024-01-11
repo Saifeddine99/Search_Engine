@@ -5,17 +5,24 @@ from bloock.entity.integrity.network import Network
 from datetime import datetime
 import json
 
+from encrypt import encrypt_data
+
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env file
+load_dotenv()
+
 def previous_decision(name,uuid):
         # we set the API key and create a client
-        bloock.api_key = "vEeT8qIGWhU2c7G8SrXXydlZwATaRufiHMQ0LAu-F-DHCEcOAxxOLzfJhQj8zkD1"
-
+        bloock.api_key = os.getenv("API_KEY") 
         record_client = RecordClient()
         integrity_client = IntegrityClient()
 
 
-        dict_yes={"name":name,
-                "uuid":uuid,
-                "decision":"YES"
+        dict_yes={"name": encrypt_data(name),
+                "uuid": uuid,
+                "decision": encrypt_data("YES")
                 }
         json_string_yes = json.dumps(dict_yes)
         record_yes = record_client.from_json(json_string_yes).build()
@@ -30,9 +37,9 @@ def previous_decision(name,uuid):
                 date_yes=datetime.utcfromtimestamp(timestamp_yes)
 
 
-        dict_no={"name":name,
-                "uuid":uuid,
-                "decision":"NO"
+        dict_no={"name": encrypt_data(name),
+                "uuid": uuid,
+                "decision": encrypt_data("NO")
                 }
         json_string_no = json.dumps(dict_no)
         record_no = record_client.from_json(json_string_no).build()
@@ -57,4 +64,3 @@ def previous_decision(name,uuid):
                         return "YES"
                 else:
                         return "NO"
-    

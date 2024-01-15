@@ -3,8 +3,8 @@ import pymongo as py
 
 from demographic_queries import demographic_queries_list
 from medical_data_queries import med_data_queries_list
-from medical_history_queries import med_hist_queries_list
-from age_querying import query_age
+from medical_history_queries import med_hist_queries_list, create_med_hist_condition
+from age_querying import query_age,create_age_condition
 
 from common_uuids import extract_common_elements,create_csv_and_display
 from verification import previous_decision
@@ -58,14 +58,13 @@ chosen_parameters = chosen_parameters_demog + chosen_parameters_med_data + chose
 query_demog_list= demographic_queries_list(chosen_parameters_demog)
 
 if "Age" in chosen_parameters_med_data:
-    age_uuids=query_age()
+    age_condition_list=create_age_condition()
 
 #query_med_data_list is a list of all medical data queries
-query_med_data_list= med_data_queries_list(chosen_parameters_med_data)
+query_med_data_list = med_data_queries_list(chosen_parameters_med_data)
 
 #query_med_hist_list is a list of all medical history queries
-#query_med_hist_list
-query_med_hist_result= med_hist_queries_list(chosen_parameters_med_hist)
+query_med_hist_list = create_med_hist_condition(chosen_parameters_med_hist)
 
 if len(chosen_parameters):
     st.write("#")
@@ -102,19 +101,14 @@ if len(chosen_parameters):
             query_med_data_result.append(doc["uuid"])
 
         if "Age" in chosen_parameters_med_data:
+            age_uuids = query_age(age_condition_list)
+
             query_med_data_result=list(set(query_med_data_result) & set(age_uuids))
     
 
-#        #Querying the medical history data based on conditions:
-#        query_med_hist={}
-#        if len(query_med_hist_list):
-#            query_med_hist={"$and": query_med_hist_list}
-#
-#        cursor_med_hist = medical_hist_coll.find(query_med_hist)
-#
-#        query_med_hist_result=[]
-#        for doc in cursor_med_hist:
-#            query_med_hist_result.append(doc["uuid"])
+        #Querying the medical history data based on conditions:
+        query_med_hist_result = med_hist_queries_list(query_med_hist_list)
+
 
         #Matching "uuid":
         #this function extracts the list of common "uuid"s.

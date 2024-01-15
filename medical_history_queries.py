@@ -13,13 +13,13 @@ medical_hist_coll=myclient["Clinical_database"]["Medical history"]
 
 analytics_med_hist=["HbA1c", "UACR", "eGFR", "BMI", "Creatinine_Phosphokinase", "Ejection_fraction", "Platelets", "Serum_Creatinine", "Serum_Sodium"]
 
-def med_hist_queries_list(chosen_parameters_med_hist):
-    #query_med_hist_list is a list of all medical history queries
-    uuids_list=[]
+def create_med_hist_condition(chosen_parameters_med_hist):
+
+    conditions_list=[]
     if len(chosen_parameters_med_hist)>0:
-        uuidzz_all_iterations=[]
         for value in chosen_parameters_med_hist:
-            uuidzz_one_iteration=[]
+            value_condition=[]
+
             st.header(value.upper()+":")
 
             col01,col02,col03 = st.columns([1.25,.25,2])
@@ -40,12 +40,35 @@ def med_hist_queries_list(chosen_parameters_med_hist):
                         min_value=lower_value
                         )
 
-
                 else:
                     input_value = st.number_input(
                         "Value of "+value+":"
                         )
-                    
+
+            value_condition.append(value)        
+            value_condition.append(selected)
+            if selected=="between":
+                value_condition.append(lower_value)
+                value_condition.append(higher_value) 
+            else:
+                value_condition.append(input_value)
+
+            conditions_list.append(value_condition)    
+
+    return conditions_list
+
+def med_hist_queries_list(conditions_list):
+    #query_med_hist_list is a list of all medical history queries
+    uuids_list=[]
+    if len(conditions_list)>0:
+        uuidzz_all_iterations=[]
+        for condition in conditions_list:
+            uuidzz_one_iteration=[]
+
+            value = condition[0]
+            selected = condition[1]
+            if selected !="between":
+                input_value= condition[2]
             
             if value == "BMI":
 
@@ -81,6 +104,10 @@ def med_hist_queries_list(chosen_parameters_med_hist):
                             pass
 
                     if selected=="between":
+
+                        lower_value = condition[2]
+                        higher_value = condition[3]
+
                         for index,actual_value in enumerate(value_list):
                             
                             if (lower_value <= actual_value) & ( actual_value <= higher_value) :
@@ -159,6 +186,10 @@ def med_hist_queries_list(chosen_parameters_med_hist):
                             all_uuids.append(doc["uuid"])
 
                     if selected=="between":
+                        
+                        lower_value = condition[2]
+                        higher_value = condition[3]
+
                         for index,actual_value in enumerate(value_list):
                             
                             if (lower_value <= actual_value) & ( actual_value <= higher_value) :

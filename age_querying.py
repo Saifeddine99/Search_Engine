@@ -10,8 +10,9 @@ myclient=py.MongoClient("mongodb://localhost:27017")
 #Relating data to "clinical_data"
 medical_data_coll=myclient["Clinical_database"]["Medical data"]
 
-def query_age():
-    uuids_list=[]
+def create_age_condition():
+    
+    condition_list=[]
 
     st.header("AGE:")
     col01,col02,col03 = st.columns([1.25,.25,2])
@@ -45,6 +46,23 @@ def query_age():
                 step=1
                 )
             
+    condition_list.append(selected)
+    if selected=="between":
+        condition_list.append(lower_value)
+        condition_list.append(higher_value)
+
+    else:
+        condition_list.append(input_value)
+
+    return condition_list
+#--------------------------------------------------------------------------
+def query_age(age_condition_list):
+    uuids_list=[]
+
+    selected=age_condition_list[0]
+    if selected != "between":
+        input_value= age_condition_list[1] 
+
     if selected=="equal":
         input_value=str(input_value)
         condition = {parameter_to_directory("Age"): encrypt_data(input_value)}
@@ -73,6 +91,8 @@ def query_age():
             
         
         if selected=="between":
+            lower_value = age_condition_list[1]
+            higher_value = age_condition_list[2]
             for index,age_value in enumerate(ages_list):
                 
                 if (lower_value <= age_value) & ( age_value <= higher_value) :

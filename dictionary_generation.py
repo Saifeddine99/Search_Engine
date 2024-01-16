@@ -17,8 +17,12 @@ def dict_generation(consent_uuids):
     dem_uuidz_list=[]
     cursor_demog = demographic_data_coll.find({"uuid": {"$in": consent_uuids}})
     for demographic_doc in cursor_demog:
-        dem_uuidz_list.append(demographic_doc["uuid"])
-        gender.append(decrypt_data(demographic_doc["demographic data"]["details"]["items"][3]["value"]["value"]))
+
+        occurence=medical_data_coll.count_documents({"uuid":demographic_doc["uuid"]})
+
+        for occ in range(occurence):
+            dem_uuidz_list.append(demographic_doc["uuid"])
+            gender.append(decrypt_data(demographic_doc["demographic data"]["details"]["items"][3]["value"]["value"]))
 
     #preparing the medical data to be displayed:
     age=[]
@@ -112,7 +116,7 @@ def dict_generation(consent_uuids):
         except:
             pass
 
-        
+
     #preparing the medical history to be displayed:
     bmi=[]
     hba1c=[]
@@ -169,7 +173,7 @@ def dict_generation(consent_uuids):
     index_mapping = {value: index for index, value in enumerate(med_uuidz_list)}
     # Sort list2 and list3 based on the order in med_uuidz_list
     sorted_demog_uuidz_list, gender = zip(*sorted(zip(dem_uuidz_list, gender), key=lambda x: index_mapping[x[0]]))
-    
+
     #Putting data to be displayed in a dictionary:
     csv_dict={  "Gender":gender,
                 "Age":age,

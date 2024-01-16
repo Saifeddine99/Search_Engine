@@ -15,7 +15,7 @@ def plotting(df):
         st.plotly_chart(fig_vital_status, use_container_width=True)
 
     with right_plots:
-        selected_hba1c_rows = df.loc[df['HbA1c'] != "Unknown" , 'HbA1c'].tolist()
+        selected_hba1c_rows = df.loc[df['HbA1c'] != "UNKNOWN" , 'HbA1c'].tolist()
         # Define intervals
         bins = [float('-inf'), 6.49, 7, 8, 9, float('inf')]
         labels = ['<6.5', '6.5-6.99', '7-7.99', '8-8.99', '>=9']
@@ -29,7 +29,7 @@ def plotting(df):
         fig = px.bar(interval_counts, x='HbA1c', y='Count',title="HbA1c Stats:", color='HbA1c', color_discrete_sequence=custom_colors)
         st.plotly_chart(fig, use_container_width=True)
         #----------------------------------------------------------------------------------
-        spec_df=df.loc[df['HbA1c'] != "Unknown" , ['HbA1c','Age']]
+        spec_df=df.loc[df['HbA1c'] != "UNKNOWN" , ['HbA1c','Age']]
         bins = [0, 40, 50, 65, 80, float('inf')]
         labels = ['<40', '40-50', '50-65', '65-80', '>=80']
 

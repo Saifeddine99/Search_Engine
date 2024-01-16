@@ -104,7 +104,7 @@ if len(chosen_parameters):
             age_uuids = query_age(age_condition_list)
 
             query_med_data_result=list(set(query_med_data_result) & set(age_uuids))
-    
+
 
         #Querying the medical history data based on conditions:
         query_med_hist_result = med_hist_queries_list(query_med_hist_list)
@@ -128,6 +128,7 @@ if len(chosen_parameters):
         st.write("#")
 
         if consent_uuids:
+
             csv_dict=dict_generation(consent_uuids)
             df=create_csv_and_display(csv_dict)
             plotting(df)
